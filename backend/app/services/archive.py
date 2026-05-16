@@ -845,6 +845,30 @@ async def _null_print_log_thumbnail_paths(db: AsyncSession, archive_id: int) -> 
     await db.execute(sa_update(PrintLogEntry).where(PrintLogEntry.archive_id == archive_id).values(thumbnail_path=None))
 
 
+async def _cancel_pending_queue_items(db: AsyncSession, archive_id: int) -> None:
+    """Cancel pending queue items pointing at *archive_id* (#1348 follow-up).
+
+    Called from ``soft_delete_archive`` only — hard-delete is covered by the
+    ``ON DELETE CASCADE`` on ``print_queue.archive_id``.  A queue item
+    pointing at an archive whose 3MF has been removed from disk can never
+    actually dispatch, so cancelling at delete time both (a) tells the user
+    why the item disappeared from the pending list, and (b) stops the queue
+    page from 404-storming the archive thumbnail / plates / plate-thumbnail
+    endpoints when the row is rendered. Only ``pending`` items are touched;
+    ``printing`` is a rare race the printer-side fail-path catches, and
+    completed / failed / cancelled rows are historical and untouched.
+    """
+    from sqlalchemy import update as sa_update
+
+    from backend.app.models.print_queue import PrintQueueItem
+
+    await db.execute(
+        sa_update(PrintQueueItem)
+        .where(PrintQueueItem.archive_id == archive_id, PrintQueueItem.status == "pending")
+        .values(status="cancelled", waiting_reason="Source archive deleted")
+    )
+
+
 class ArchiveService:
     """Service for archiving print jobs."""
 
@@ -1271,6 +1295,7 @@ class ArchiveService:
         dir_to_delete = self._resolve_archive_dir_for_delete(archive)
 
         await _null_print_log_thumbnail_paths(self.db, archive_id)
+        await _cancel_pending_queue_items(self.db, archive_id)
         archive.deleted_at = datetime.now(timezone.utc)
         await self.db.commit()
 

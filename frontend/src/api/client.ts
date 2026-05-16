@@ -1691,6 +1691,10 @@ export interface PrintQueueItem {
   created_at: string;
   archive_name?: string | null;
   archive_thumbnail?: string | null;
+  // True when the linked archive has been soft-deleted; archive_name /
+  // archive_thumbnail / downstream metadata are left null in that case so
+  // the UI doesn't 404-storm the now-missing endpoints (#1348 follow-up).
+  archive_deleted?: boolean;
   library_file_name?: string | null;
   library_file_thumbnail?: string | null;
   printer_name?: string | null;
