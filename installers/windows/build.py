@@ -271,17 +271,20 @@ def write_version_file() -> None:
     Inno Setup include file so the .iss script can pick it up at compile
     time without a fragile file-read hack.
 
-    Reads from pyproject.toml's [project] version line for the source of
-    truth. Falls back to ``0.0.0+dev`` if not parseable.
+    Reads ``APP_VERSION`` from ``backend/app/core/config.py`` — that's the
+    canonical version used by every other surface in Bambuddy (the FastAPI
+    OpenAPI title, /system info, the support bundle, the spoolbuddy update
+    check). pyproject.toml has its own stale ``version = "0.1.5"`` that
+    isn't kept in sync; reading it would ship a wrong-versioned installer.
     """
     version = "0.0.0+dev"
-    pyproject = REPO_ROOT / "pyproject.toml"
-    if pyproject.exists():
-        for line in pyproject.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("version =") or line.startswith('version="'):
-                # version = "0.1.5"  ->  0.1.5
-                version = line.split("=", 1)[1].strip().strip('"').strip("'")
+    config_py = REPO_ROOT / "backend" / "app" / "core" / "config.py"
+    if config_py.exists():
+        for raw in config_py.read_text().splitlines():
+            stripped = raw.strip()
+            if stripped.startswith("APP_VERSION"):
+                # APP_VERSION = "0.2.5b1"  ->  0.2.5b1
+                version = stripped.split("=", 1)[1].strip().strip('"').strip("'")
                 break
     (STAGING / "VERSION").write_text(version)
 

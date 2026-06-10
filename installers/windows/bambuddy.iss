@@ -49,8 +49,12 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ; Admin required: we register a Windows service and write to ProgramData
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=
-UninstallDisplayIcon={app}\bin\nssm.exe
-SetupIconFile=
+; Bambuddy branding — bambuddy.ico is a multi-resolution .ico (16/32/48/
+; 64/128/256) generated from frontend/public/img/favicon.png; lives next
+; to this .iss so the SourcePath-relative reference works during compile
+; and the [Files] entry stages it into {app} for Add/Remove Programs.
+SetupIconFile=bambuddy.ico
+UninstallDisplayIcon={app}\bambuddy.ico
 ; Don't allow installing to a network drive — service won't start cleanly
 DisableDirPage=no
 DisableReadyPage=no
@@ -76,6 +80,10 @@ Source: "build\staging\bin\*"; DestDir: "{app}\bin"; Flags: recursesubdirs ignor
 Source: "build\staging\service\*"; DestDir: "{app}\service"; Flags: recursesubdirs ignoreversion
 ; Version stamp
 Source: "build\staging\VERSION"; DestDir: "{app}"; Flags: ignoreversion
+; App icon — used by UninstallDisplayIcon (Add/Remove Programs) and the
+; Start Menu / desktop shortcuts. Lives at the install root so the
+; UninstallDisplayIcon path stays stable when the [Files] tree changes.
+Source: "bambuddy.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 ; ProgramData layout — created with permissions LocalSystem can write to
@@ -84,10 +92,10 @@ Name: "{commonappdata}\Bambuddy\data"; Permissions: users-modify
 Name: "{commonappdata}\Bambuddy\logs"; Permissions: users-modify
 
 [Icons]
-Name: "{group}\Open Bambuddy Dashboard"; Filename: "http://localhost:{#DefaultPort}"; IconFilename: "{app}\bin\nssm.exe"
+Name: "{group}\Open Bambuddy Dashboard"; Filename: "http://localhost:{#DefaultPort}"; IconFilename: "{app}\bambuddy.ico"
 Name: "{group}\Bambuddy Logs"; Filename: "{commonappdata}\Bambuddy\logs"
 Name: "{group}\Uninstall Bambuddy"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\Bambuddy"; Filename: "http://localhost:{#DefaultPort}"; IconFilename: "{app}\bin\nssm.exe"; Tasks: desktopicon
+Name: "{commondesktop}\Bambuddy"; Filename: "http://localhost:{#DefaultPort}"; IconFilename: "{app}\bambuddy.ico"; Tasks: desktopicon
 
 [Run]
 ; Register and start the Windows service
